@@ -1,18 +1,24 @@
+//Structura de datos: Árbol AVL para gestionar el inventario de una librería.
 #[derive(Debug, Clone)]
+// La estructura Libro representa un libro con un ISBN único y un título.
 struct Libro {
     isbn: u32,
     titulo: String,
 }
 
+// La estructura Nodo representa un nodo en el árbol AVL, que contiene un libro y punteros a los nodos hijos izquierdo y derecho, así como la altura del nodo para mantener el balance del árbol.
 struct Nodo {
     libro: Libro,
     // Box<T> es un puntero inteligente que asigna memoria en el heap.
     // Se usa aquí para permitir que la estructura sea recursiva, ya que Box tiene un tamaño fijo.
     izquierdo: Option<Box<Nodo>>,
+    // El uso de Option<Box<Nodo>> permite representar la ausencia de un hijo (None) o la presencia de un nodo (Some(Box<Nodo>)).
     derecho: Option<Box<Nodo>>,
+    // La altura se mantiene para cada nodo para facilitar el cálculo del balance y las rotaciones necesarias para mantener el árbol AVL equilibrado.
     altura: i32,
 }
 
+// Implementación de métodos para la estructura Nodo.
 impl Nodo {
     fn nuevo(libro: Libro) -> Self {
         Nodo {
@@ -23,20 +29,20 @@ impl Nodo {
         }
     }
 }
-
+// Función auxiliar para obtener la altura de un nodo. Si el nodo es None, se considera que su altura es 0.
 fn obtener_altura(nodo: &Option<Box<Nodo>>) -> i32 {
     // as_ref() convierte un &Option<T> en Option<&T>, permitiendo acceder al contenido
     // por referencia sin tomar la propiedad del valor original.
     nodo.as_ref().map_or(0, |n| n.altura)
 }
-
+// Función auxiliar para actualizar la altura de un nodo después de una inserción o eliminación. La altura se calcula como 1 más el máximo entre las alturas de los hijos izquierdo y derecho.
 fn actualizar_altura(nodo: &mut Nodo) {
     nodo.altura = 1 + std::cmp::max(
         obtener_altura(&nodo.izquierdo),
         obtener_altura(&nodo.derecho),
     );
 }
-
+// Función para calcular el factor de balance de un nodo, que es la diferencia entre la altura del subárbol izquierdo y la altura del subárbol derecho. Un valor de balance de -1, 0 o 1 indica que el nodo está equilibrado, mientras que valores fuera de este rango indican que el nodo está desbalanceado y requiere rotación.
 fn obtener_balance(nodo: &Nodo) -> i32 {
     obtener_altura(&nodo.izquierdo) - obtener_altura(&nodo.derecho)
 }
@@ -84,6 +90,7 @@ fn rotar_izquierda(mut x: Box<Nodo>) -> Box<Nodo> {
     y
 }
 
+// Función de inserción que mantiene el balance del árbol AVL. Recibe un nodo opcional (puede ser None para el caso base) y un libro a insertar. Devuelve el nuevo nodo raíz del subárbol después de la inserción y las posibles rotaciones.
 fn insertar(nodo_opt: Option<Box<Nodo>>, libro: Libro) -> Box<Nodo> {
     let mut nodo = match nodo_opt {
         None => return Box::new(Nodo::nuevo(libro)),
@@ -122,6 +129,7 @@ fn insertar(nodo_opt: Option<Box<Nodo>>, libro: Libro) -> Box<Nodo> {
     nodo
 }
 
+// Función de impresión del árbol en orden (in-order) para mostrar los libros ordenados por ISBN. Recibe una referencia al nodo raíz y un nivel para controlar la indentación visual.
 fn imprimir(nodo: &Option<Box<Nodo>>, nivel: usize) {
     if let Some(n) = nodo {
         imprimir(&n.derecho, nivel + 1);
@@ -160,6 +168,7 @@ fn buscar(nodo: &Option<Box<Nodo>>, isbn: u32) -> Option<&Libro> {
     None
 }
 
+// Función de eliminación que mantiene el balance del árbol AVL. Recibe un nodo opcional y el ISBN del libro a eliminar. Devuelve el nuevo nodo raíz del subárbol después de la eliminación y las posibles rotaciones.
 fn eliminar(nodo: Option<Box<Nodo>>, isbn: u32) -> Option<Box<Nodo>> {
     let mut nodo = match nodo {
         None => return None,
@@ -277,6 +286,7 @@ fn obtener_estadisticas<'a>(nodo: &'a Option<Box<Nodo>>) -> EstadisticasArbol<'a
     }
 }
 
+// En el main, demostramos la funcionalidad del sistema de inventario de librería utilizando un árbol AVL. Insertamos varios libros, imprimimos el árbol, realizamos búsquedas y eliminaciones, y finalmente obtenemos estadísticas del árbol.
 fn main() {
     let mut raiz: Option<Box<Nodo>> = None;
     let datos = vec![
