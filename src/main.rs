@@ -1,6 +1,11 @@
-//Structura de datos: Árbol AVL para gestionar el inventario de una librería.
+// ============================================================
+// Motor de Catálogo AVL - Biblioteca Municipal de Santa Ana
+// Materia: Estructuras de Datos / Programación II
+// ============================================================
+
+// Clone permite copiar un Libro cuando sea necesario (ej: al extraer el sucesor).
+// Debug permite imprimir la struct con {:?}
 #[derive(Debug, Clone)]
-// La estructura Libro representa un libro con un ISBN único y un título.
 struct Libro {
     isbn: u32,
     titulo: String,
@@ -143,9 +148,15 @@ fn imprimir(nodo: &Option<Box<Nodo>>, nivel: usize) {
         imprimir(&n.izquierdo, nivel + 1);
     }
 }
-//Implementa una función de búsqueda eficiente que no realice copias innecesarias de los datos.
-//Requisito: Debe retornar una referencia (&Libro).
-//Validación: En el main, demuestra que el sistema encuentra un libro existente y maneja correctamente la búsqueda de uno inexistente.
+
+// ================================================================
+// FASE 2: BÚSQUEDA EFICIENTE
+// Firma: fn buscar(nodo: &Option<Box<Nodo>>, isbn: u32) -> Option<&Libro>
+//
+// Retorna una referencia al Libro (sin clonar ni copiar datos).
+// Recorre el árbol igual que un BST binario: O(log n) garantizado
+// porque el AVL mantiene el balance.
+// ================================================================
 fn buscar(nodo: &Option<Box<Nodo>>, isbn: u32) -> Option<&Libro> {
     // Comprobar si el nodo actual existe
     if let Some(n) = nodo {
@@ -168,7 +179,22 @@ fn buscar(nodo: &Option<Box<Nodo>>, isbn: u32) -> Option<&Libro> {
     None
 }
 
-// Función de eliminación que mantiene el balance del árbol AVL. Recibe un nodo opcional y el ISBN del libro a eliminar. Devuelve el nuevo nodo raíz del subárbol después de la eliminación y las posibles rotaciones.
+// ================================================================
+// FASE 3: ELIMINACIÓN CON REBALANCEO
+// Firma: fn eliminar(nodo_opt: Option<Box<Nodo>>, isbn: u32) -> Option<Box<Nodo>>
+//
+// Maneja 3 casos:
+//   1. Nodo hoja (sin hijos)      → simplemente se elimina
+//   2. Nodo con un solo hijo      → el hijo reemplaza al nodo
+//   3. Nodo con dos hijos         → se reemplaza con el sucesor in-orden
+//      (el nodo más pequeño del subárbol derecho) y luego se elimina
+//      ese sucesor del subárbol derecho.
+//
+// Tras eliminar: actualiza altura y aplica rotaciones si es necesario.
+// ================================================================
+
+// Función auxiliar: extrae el nodo con ISBN mínimo de un subárbol.
+// Retorna (libro_del_mínimo, nuevo_subárbol_sin_ese_nodo).
 fn eliminar(nodo: Option<Box<Nodo>>, isbn: u32) -> Option<Box<Nodo>> {
     let mut nodo = match nodo {
         None => return None,
@@ -229,19 +255,17 @@ fn eliminar(nodo: Option<Box<Nodo>>, isbn: u32) -> Option<Box<Nodo>> {
     Some(nodo)
 }
 // ─── Estadísticas ────────────────────────────────────────────────────────────
-
-// Struct que agrupa los tres datos que devuelve la consulta.
-// Se usa una referencia con lifetime 'a para &Libro: así evitamos clonar el
-// libro más costoso y simplemente apuntamos al nodo que ya vive en el árbol.
+// ================================================================
+// FASE 4 — OPCIÓN B: ESTADÍSTICAS DEL ÁRBOL
+// Retorna: (altura_total, total_nodos, libro_con_isbn_mas_alto)
+// ================================================================
 struct EstadisticasArbol<'a> {
-    altura_total: i32,
-    total_nodos: u32,
+    altura_total: usize,
+    total_nodos: usize,
     libro_isbn_mayor: Option<&'a Libro>,
 }
 
-// Recorre el árbol una sola vez (O(n)) calculando los tres valores de forma
-// simultánea. Recibe una referencia al nodo raíz y propaga el resultado
-// hacia arriba mediante acumulación recursiva.
+
 fn obtener_estadisticas<'a>(nodo: &'a Option<Box<Nodo>>) -> EstadisticasArbol<'a> {
     match nodo {
         // Caso base: nodo vacío → valores neutros.
@@ -288,6 +312,9 @@ fn obtener_estadisticas<'a>(nodo: &'a Option<Box<Nodo>>) -> EstadisticasArbol<'a
 
 // En el main, demostramos la funcionalidad del sistema de inventario de librería utilizando un árbol AVL. Insertamos varios libros, imprimimos el árbol, realizamos búsquedas y eliminaciones, y finalmente obtenemos estadísticas del árbol.
 fn main() {
+    println!("╔══════════════════════════════════════════════════╗");
+    println!("║   Sistema de Inventario de Librería (AVL) - SA   ║");
+    println!("╚══════════════════════════════════════════════════╝\n");
     let mut raiz: Option<Box<Nodo>> = None;
     let datos = vec![
         (10, "El Quijote"),
@@ -310,8 +337,11 @@ fn main() {
     imprimir(&raiz, 0);
 
     // --- ESPACIO PARA TUS PRUEBAS ---
+    println!("\n─────────────────────────────────────────────────");
+    println!(" FASE 2 — Pruebas de búsqueda");
+    println!("─────────────────────────────────────────────────");
     // Buscamos un libro existente
-    let isbn_buscar = 20;
+     let isbn_buscar = 20;
     match buscar(&raiz, isbn_buscar) {
         Some(libro) => println!("Libro encontrado: [ISBN: {}] {}", libro.isbn, libro.titulo),
         None => println!("Libro con ISBN {} no encontrado.", isbn_buscar),
@@ -325,10 +355,12 @@ fn main() {
     }
 
     // --- PRUEBAS DE ELIMINACIÓN ---
+    println!("\n─────────────────────────────────────────────────");
+    println!("  FASE 3 — Pruebas de eliminación");
+    println!("─────────────────────────────────────────────────");
     println!("\n--- Eliminando ISBN 20 (nodo con sucesor 25) ---");
     raiz = eliminar(raiz, 20);
     imprimir(&raiz, 0);
-
     println!("\n--- Eliminando ISBN 2 (nodo hoja) ---");
     raiz = eliminar(raiz, 2);
     imprimir(&raiz, 0);
@@ -338,8 +370,9 @@ fn main() {
     imprimir(&raiz, 0);
 
     // ── Estadísticas ──────────────────────────────────────────────────────────
-    // Llamamos a obtener_estadisticas() sobre el árbol completo (antes de
-    // eliminar) para mostrar los tres valores en una sola pasada.
+    println!("\n─────────────────────────────────────────────────");
+    println!(" FASE 4 — Estadísticas del árbol");
+    println!("─────────────────────────────────────────────────");
 
     println!("\n=== Estadísticas (árbol completo inicial) ===");
     let mut raiz_stats: Option<Box<Nodo>> = None;
@@ -382,6 +415,9 @@ fn main() {
         Some(libro) => println!("  Libro con ISBN mayor   : [ISBN: {}] \"{}\"", libro.isbn, libro.titulo),
         None => println!("  Libro con ISBN mayor   : (árbol vacío)"),
     }
+    println!("\n╔══════════════════════════════════════════════════╗");
+    println!("║           Todas las pruebas completadas        ║");
+    println!("╚══════════════════════════════════════════════════╝");
 }
 
 // En Rust, usar .take() (por ejemplo, en un Option<Node>) es necesario porque el sistema de propiedad (ownership) prohíbe dejar una variable temporalmente vacía o sin inicializar al mover su contenido.
